@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1f3a5f">
+<title>Referee English</title>
+<style>
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  .nojs { background: #fff3cd; border: 1px solid #e0c36a; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #f4f5f7;
+    color: #1b1f24;
+    font-size: 17px;
+    line-height: 1.4;
+  }
+  header {
+    background: #1f3a5f;
+    color: #fff;
+    padding: 12px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  header h1 { margin: 0; font-size: 19px; }
+  #status { font-size: 14px; opacity: 0.92; min-height: 1em; margin-top: 4px; }
+  main { max-width: 640px; margin: 0 auto; padding: 12px; }
+
+  #menu { display: grid; gap: 10px; margin-bottom: 12px; }
+  #menu button.scenario {
+    text-align: left;
+    padding: 14px 16px;
+    font-size: 17px;
+    border: 1px solid #c9d1db;
+    border-radius: 12px;
+    background: #fff;
+    color: #1b1f24;
+    cursor: pointer;
+  }
+  #menu button.scenario small { display: block; color: #5a6470; margin-top: 4px; font-size: 14px; }
+  #menu button.random { background: #1f3a5f; color: #fff; border-color: #1f3a5f; text-align: center; }
+
+  #chat { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+  .bubble { max-width: 92%; padding: 10px 12px; border-radius: 14px; overflow-wrap: anywhere; }
+  .bubble p { margin: 0 0 6px 0; }
+  .bubble .who { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #5a6470; margin-bottom: 2px; }
+  .bubble p.tr { color: #3c4650; font-style: italic; }
+  .coach { background: #fff; border: 1px solid #d5dbe3; align-self: flex-start; }
+  .student { background: #dff0e3; border: 1px solid #b9dcc2; align-self: flex-end; }
+  .btnrow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  button.small, a.link {
+    font-size: 14px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid #aab4c1;
+    background: #f7f9fb;
+    color: #1f3a5f;
+    text-decoration: none;
+    cursor: pointer;
+    display: inline-block;
+  }
+  ul.notes { margin: 6px 0 8px 18px; padding: 0; font-size: 14px; color: #7a3b00; }
+  ul.notes li { margin-bottom: 3px; }
+  .endnote { align-self: center; font-size: 14px; color: #5a6470; text-align: center; padding: 4px 8px; }
+
+  #inputArea { background: #fff; border: 1px solid #d5dbe3; border-radius: 12px; padding: 10px; margin-bottom: 12px; }
+  textarea#answer {
+    width: 100%;
+    font-size: 17px;
+    padding: 10px;
+    border: 1px solid #c9d1db;
+    border-radius: 8px;
+    resize: vertical;
+    font-family: inherit;
+  }
+  textarea#answer.live { border-color: #c0392b; box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.15); }
+  .row { display: flex; gap: 8px; margin-top: 8px; }
+  .row button {
+    flex: 1;
+    padding: 12px;
+    font-size: 17px;
+    border-radius: 10px;
+    border: 1px solid #1f3a5f;
+    background: #fff;
+    color: #1f3a5f;
+    cursor: pointer;
+  }
+  .row button.primary { background: #1f3a5f; color: #fff; }
+  .row button.recording { background: #c0392b; border-color: #c0392b; color: #fff; }
+  .row button:disabled { opacity: 0.5; }
+
+  #tools { display: flex; gap: 8px; margin-bottom: 24px; }
+  #tools button {
+    flex: 1;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: 1px solid #aab4c1;
+    background: #fff;
+    color: #1b1f24;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Referee English</h1>
+  <div id="status"></div>
+</header>
+
+<main>
+  <div id="nojs" class="nojs">
+    <strong>Bu sayfa burada çalışmıyor.</strong><br>
+    Dosya önizlemesi kodu çalıştırmaz. Sayfayı linkten Chrome ya da Safari'de aç.<br>
+    <em>This preview can't run the page. Open the link in Chrome or Safari.</em>
+  </div>
+  <section id="menu"></section>
+  <section id="chat"></section>
+
+  <section id="inputArea" hidden>
+    <textarea id="answer" rows="2" placeholder="Konuş ya da yaz... / Speak or type your answer"></textarea>
+    <div class="row">
+      <button id="micBtn" type="button">🎤 Konuş</button>
+      <button id="sendBtn" type="button" class="primary">Gönder</button>
+    </div>
+  </section>
+
+  <section id="tools" hidden>
+    <button id="copyBtn" type="button">Konuşmayı kopyala</button>
+    <button id="newBtn" type="button">Yeni konuşma</button>
+  </section>
+</main>
+
+<script>
+// =====================================================================
+// SCENARIOS
+// Each scenario: title, subtitle (Turkish), speaker (English label shown
+// on the bubble), start (first node id), nodes.
+// Each node:
+//   en    - line spoken aloud and shown in English
+//   tr    - Turkish version (shown with the "Türkçe" button)
+//   retry - {en, tr}: used when the answer matches no branch; the
+//           conversation stays on the same node
+//   next  - [{keys, to}]: keyword branches, checked in order, first match
+//           wins; keys are matched as whole words, case-insensitive
+//   end   - true: the conversation ends after this line
+// To add a scenario, copy one block and change the text.
+// =====================================================================
+const SCENARIOS = {
+  foul: {
+    title: "Challenged foul call",
+    subtitle: "Başhakem verdiğin faulün yanlış olduğunu söylüyor.",
+    speaker: "Crew chief",
+    start: "c1",
+    nodes: {
+      c1: {
+        en: "Why did you call the foul? I don't think it was a foul.",
+        tr: "Neden faul verdin? Bence faul değildi.",
+        retry: { en: "I didn't understand. Please tell me the reason for the call.", tr: "Anlamadım. Lütfen düdüğün nedenini söyle." },
+        next: [
+          { keys: ["sorry", "mistake", "wrong", "you are right", "you're right"], to: "c4" },
+          { keys: ["contact", "touch", "touched", "hit", "push", "pushed", "arm", "hand", "body", "shoulder", "hip", "defender", "illegal"], to: "c2" }
+        ]
+      },
+      c2: {
+        en: "Where was the contact? I did not see it from my position.",
+        tr: "Temas nerede oldu? Ben kendi pozisyonumdan görmedim.",
+        retry: { en: "Tell me where. Use a word like arm, hand, hip or body.", tr: "Nerede olduğunu söyle. Arm, hand, hip ya da body gibi bir kelime kullan." },
+        next: [
+          { keys: ["sorry", "mistake", "wrong"], to: "c4" },
+          { keys: ["arm", "hand", "wrist", "elbow", "body", "shoulder", "hip", "side", "leg", "chest", "back"], to: "c3" }
+        ]
+      },
+      c3: {
+        en: "Did the contact change the shot? Was it enough for a foul?",
+        tr: "Temas atışı etkiledi mi? Faul için yeterli miydi?",
+        retry: { en: "Answer yes or no, and give one reason.", tr: "Evet ya da hayır de ve bir neden söyle." },
+        next: [
+          { keys: ["yes", "no", "not", "because", "enough", "affected", "changed", "missed", "advantage"], to: "c5" }
+        ]
+      },
+      c4: {
+        en: "Okay. It happens. Next time, wait a moment before you blow the whistle.",
+        tr: "Tamam. Olur böyle şeyler. Bir dahaki sefere düdüğü çalmadan önce bir an bekle.",
+        end: true
+      },
+      c5: {
+        en: "Thanks for explaining. Good communication. Let's continue the game.",
+        tr: "Açıkladığın için teşekkürler. İyi iletişim. Oyuna devam edelim.",
+        end: true
+      }
+    }
+  },
+
+  travelling: {
+    title: "Travelling call",
+    subtitle: "Antrenör adım hatası kararına itiraz ediyor.",
+    speaker: "Coach",
+    start: "t1",
+    nodes: {
+      t1: {
+        en: "Travelling? Really? He did not move his feet!",
+        tr: "Adım hatası mı? Gerçekten mi? Ayaklarını hareket ettirmedi!",
+        retry: { en: "Tell me what you saw. Did he move his pivot foot?", tr: "Ne gördüğünü söyle. Pivot ayağını oynattı mı?" },
+        next: [
+          { keys: ["sorry", "mistake", "wrong"], to: "t5" },
+          { keys: ["yes", "moved", "pivot", "step", "steps", "three", "foot", "feet", "lifted"], to: "t2" }
+        ]
+      },
+      t2: {
+        en: "Which foot was the pivot foot?",
+        tr: "Pivot ayağı hangisiydi?",
+        retry: { en: "Just tell me: left or right?", tr: "Sadece söyle: sol mu sağ mı?" },
+        next: [
+          { keys: ["left", "right"], to: "t3" }
+        ]
+      },
+      t3: {
+        en: "Okay, but you were far away. Are you sure you saw it?",
+        tr: "Tamam ama uzaktaydın. Gördüğünden emin misin?",
+        retry: { en: "Answer me. Are you sure or not?", tr: "Cevap ver. Emin misin, değil misin?" },
+        next: [
+          { keys: ["not sure", "no", "maybe", "don't know"], to: "t5" },
+          { keys: ["yes", "sure", "clear", "clearly", "saw", "see", "angle", "view"], to: "t4" }
+        ]
+      },
+      t4: {
+        en: "Fine. I still don't agree, but I understand. Let's play.",
+        tr: "Peki. Hâlâ katılmıyorum ama anlıyorum. Oynayalım.",
+        end: true
+      },
+      t5: {
+        en: "Then be careful. My players deserve correct calls.",
+        tr: "O zaman dikkatli ol. Oyuncularım doğru kararları hak ediyor.",
+        end: true
+      }
+    }
+  },
+
+  blockcharge: {
+    title: "Block or charge?",
+    subtitle: "Başhakem blok/hücum faulü kararını soruyor.",
+    speaker: "Crew chief",
+    start: "b1",
+    nodes: {
+      b1: {
+        en: "You called a blocking foul. Was the defender in a legal position?",
+        tr: "Blok faulü verdin. Savunmacı kurallara uygun pozisyonda mıydı?",
+        retry: { en: "Answer yes or no. Was the defender's position legal?", tr: "Evet ya da hayır de. Savunmacının pozisyonu kurallara uygun muydu?" },
+        next: [
+          { keys: ["no", "not", "moving", "moved", "late", "sideways", "forward"], to: "b2" },
+          { keys: ["yes", "legal", "set"], to: "b3" }
+        ]
+      },
+      b2: {
+        en: "Okay. Was he inside the restricted area, the no-charge semi-circle?",
+        tr: "Tamam. Hücum faulü olmayan yarım dairenin, yani kısıtlı alanın içinde miydi?",
+        retry: { en: "Inside or outside the semi-circle?", tr: "Yarım dairenin içinde mi, dışında mı?" },
+        next: [
+          { keys: ["inside", "in", "yes"], to: "b4" },
+          { keys: ["outside", "out", "no", "not"], to: "b4" }
+        ]
+      },
+      b3: {
+        en: "If his position was legal, why did you call a block and not a charge?",
+        tr: "Pozisyonu kurallara uygunsa neden hücum faulü değil de blok verdin?",
+        retry: { en: "Explain your decision in one sentence.", tr: "Kararını bir cümleyle açıkla." },
+        next: [
+          { keys: ["sorry", "mistake", "wrong", "should"], to: "b5" },
+          { keys: ["because", "moved", "moving", "late", "leaned", "arms", "hips"], to: "b4" }
+        ]
+      },
+      b4: {
+        en: "Good. Your explanation is clear. Keep watching the defender's feet.",
+        tr: "İyi. Açıklaman net. Savunmacının ayaklarını izlemeye devam et.",
+        end: true
+      },
+      b5: {
+        en: "Okay. Next time, look at the defender before the contact, not after.",
+        tr: "Tamam. Bir dahaki sefere savunmacıya temastan sonra değil, önce bak.",
+        end: true
+      }
+    }
+  },
+
+  outofbounds: {
+    title: "Out of bounds",
+    subtitle: "Antrenör topun kimde olduğuna itiraz ediyor.",
+    speaker: "Coach",
+    start: "o1",
+    nodes: {
+      o1: {
+        en: "That's our ball! It went off your hands... I mean, off their player!",
+        tr: "Top bizim! Rakip oyuncuya çarpıp çıktı!",
+        retry: { en: "Who touched it last? Tell me.", tr: "Topa en son kim dokundu? Söyle bana." },
+        next: [
+          { keys: ["your player", "your team", "number", "touched", "last", "off", "white", "blue", "red", "black"], to: "o2" },
+          { keys: ["sorry", "mistake", "wrong"], to: "o4" }
+        ]
+      },
+      o2: {
+        en: "Are you sure? My player says he did not touch it.",
+        tr: "Emin misin? Oyuncum topa dokunmadığını söylüyor.",
+        retry: { en: "Yes or no? Are you sure?", tr: "Evet mi hayır mı? Emin misin?" },
+        next: [
+          { keys: ["not sure", "no", "maybe", "don't know", "check", "partner"], to: "o5" },
+          { keys: ["yes", "sure", "saw", "clear", "clearly", "fingers", "hand"], to: "o3" }
+        ]
+      },
+      o3: {
+        en: "Okay, okay. Give the ball, let's go.",
+        tr: "Tamam, tamam. Topu ver, devam edelim.",
+        end: true
+      },
+      o4: {
+        en: "Thank you. Our ball then.",
+        tr: "Teşekkürler. O zaman top bizim.",
+        end: true
+      },
+      o5: {
+        en: "Then ask your partner. He was closer.",
+        tr: "O zaman arkadaşına sor. O daha yakındı.",
+        end: true
+      }
+    }
+  },
+
+  technical: {
+    title: "Angry coach",
+    subtitle: "Antrenör sana bağırıyor. Sakin ve net konuş.",
+    speaker: "Coach",
+    start: "a1",
+    nodes: {
+      a1: {
+        en: "That is a terrible call! You are killing us tonight!",
+        tr: "Bu berbat bir karar! Bu gece bizi mahvediyorsun!",
+        retry: { en: "What? Say it clearly!", tr: "Ne? Açıkça söyle!" },
+        next: [
+          { keys: ["calm", "relax", "please", "warning", "respect", "stop", "enough", "voice", "talk"], to: "a2" },
+          { keys: ["technical", "foul"], to: "a4" }
+        ]
+      },
+      a2: {
+        en: "I am calm! I just want a fair game. Can I ask you a question?",
+        tr: "Sakinim! Sadece adil bir maç istiyorum. Sana bir soru sorabilir miyim?",
+        retry: { en: "Can I ask a question or not?", tr: "Soru sorabilir miyim, yoksa sormayayım mı?" },
+        next: [
+          { keys: ["yes", "okay", "ok", "sure", "go", "ask", "quick", "timeout", "time out"], to: "a3" },
+          { keys: ["no", "not", "later"], to: "a5" }
+        ]
+      },
+      a3: {
+        en: "Why do they get all the calls under the basket?",
+        tr: "Neden potanın altındaki bütün kararlar onlardan yana?",
+        retry: { en: "Give me an answer, please.", tr: "Bana bir cevap ver lütfen." },
+        next: [
+          { keys: ["same", "both", "fair", "equal", "watch", "contact", "rules", "because", "look"], to: "a5" }
+        ]
+      },
+      a4: {
+        en: "A technical? Fine! I'll sit down.",
+        tr: "Teknik faul mü? Peki! Oturuyorum.",
+        end: true
+      },
+      a5: {
+        en: "Okay. I hear you. Let's play.",
+        tr: "Tamam. Seni duyuyorum. Oynayalım.",
+        end: true
+      }
+    }
+  },
+
+  positioning: {
+    title: "Post-game review: position",
+    subtitle: "Gözlemci maç sonrası pozisyonunu değerlendiriyor.",
+    speaker: "Commissioner",
+    start: "p1",
+    nodes: {
+      p1: {
+        en: "In the third quarter, you were too far from the play. Why?",
+        tr: "Üçüncü çeyrekte oyuna çok uzaktın. Neden?",
+        retry: { en: "Explain with a short sentence. What happened?", tr: "Kısa bir cümleyle açıkla. Ne oldu?" },
+        next: [
+          { keys: ["screen", "blocked", "view", "angle", "fast", "break", "transition", "players", "late", "tired"], to: "p2" },
+          { keys: ["sorry", "mistake", "wrong", "know", "agree"], to: "p2" }
+        ]
+      },
+      p2: {
+        en: "What will you do differently next time?",
+        tr: "Bir dahaki sefere neyi farklı yapacaksın?",
+        retry: { en: "Tell me one thing you will change.", tr: "Değiştireceğin bir şey söyle." },
+        next: [
+          { keys: ["move", "closer", "step", "adjust", "angle", "run", "faster", "position", "wider", "earlier", "watch"], to: "p3" }
+        ]
+      },
+      p3: {
+        en: "Good. Show me that in the next game. Overall, you did well tonight.",
+        tr: "İyi. Bunu bir sonraki maçta göster. Genel olarak bu gece iyiydin.",
+        end: true
+      }
+    }
+  },
+
+  table: {
+    title: "Talking to the table",
+    subtitle: "Masa görevlisiyle şut saati hakkında konuşuyorsun.",
+    speaker: "Table official",
+    start: "s1",
+    nodes: {
+      s1: {
+        en: "Referee, the shot clock did not reset. Fourteen or twenty-four?",
+        tr: "Hakem, şut saati sıfırlanmadı. On dört mü, yirmi dört mü?",
+        retry: { en: "Sorry, I need a number: fourteen or twenty-four?", tr: "Pardon, bir sayı lazım: on dört mü, yirmi dört mü?" },
+        next: [
+          { keys: ["14", "fourteen"], to: "s2" },
+          { keys: ["24", "twenty-four", "twenty four"], to: "s3" }
+        ]
+      },
+      s2: {
+        en: "Fourteen. Okay. Was it a foul or a kicked ball?",
+        tr: "On dört. Tamam. Faul müydü yoksa ayakla oynama mı?",
+        retry: { en: "Foul or kicked ball?", tr: "Faul mü, ayakla oynama mı?" },
+        next: [
+          { keys: ["foul", "kick", "kicked", "ball"], to: "s4" }
+        ]
+      },
+      s3: {
+        en: "Twenty-four. Okay. Who has the ball, white or blue?",
+        tr: "Yirmi dört. Tamam. Top kimde, beyaz mı mavi mi?",
+        retry: { en: "Which team? White or blue?", tr: "Hangi takım? Beyaz mı mavi mi?" },
+        next: [
+          { keys: ["white", "blue", "home", "away"], to: "s4" }
+        ]
+      },
+      s4: {
+        en: "Thank you. Clock is ready. You can start the game.",
+        tr: "Teşekkürler. Saat hazır. Oyunu başlatabilirsin.",
+        end: true
+      }
+    }
+  }
+};
+
+// =====================================================================
+// GRAMMAR NOTES (Turkish), rule-based, no AI. Each rule: re, note.
+// These catch common mistakes only; the learner's own AI app covers the rest.
+// =====================================================================
+const GRAMMAR = [
+  { re: /\bI am agree\b/i, note: "'agree' fiili 'am' ile kullanılmaz. Doğrusu: 'I agree.'" },
+  { re: /\bI is\b/i, note: "'I' ile 'am' kullanılır: 'I am'." },
+  // 3rd person -s, but not after did/does/can/will/to etc. ("Did he go?" is correct)
+  { re: /(?<!\b(?:did|does|do|didn't|doesn't|can|can't|could|will|won't|would|should|must|may|might|let|make|to)\s+)\b(?:he|she|it)\s+(?:go|have|do|play|make|take|get|want|say|see|come|move|touch|need)\b/i,
+    note: "Üçüncü tekil şahısta (he/she/it) fiile -s eklenir: 'he goes', 'she has', 'it moves'." },
+  { re: /\b(?:didn'?t|did not)\s+(?:saw|went|came|made|took|got|touched|moved|called|did)\b/i, note: "'didn't' sonrasında fiilin yalın hali gelir: 'didn't see', 'didn't touch', 'didn't move'." },
+  { re: /\bmore (?:better|worse)\b/i, note: "'better' ve 'worse' zaten karşılaştırmadır. Başına 'more' gelmez." },
+  { re: /\bhave (?:went|came|saw)\b/i, note: "'have' ile fiilin üçüncü hali kullanılır: 'have gone', 'have come', 'have seen'." },
+  { re: /\bdiscuss about\b/i, note: "'discuss' edatsız kullanılır: 'discuss the call'." },
+  { re: /\bon (?:arm|hand|body|shoulder|leg|side|hip|wrist|elbow)\b/i, note: "Vücut bölgesinden önce genelde 'the' ya da 'his' kullanılır: 'on the arm', 'on his arm'." },
+  { re: /\bhe (?:don't|haven't)\b/i, note: "'he' ile 'doesn't' / 'hasn't' kullanılır: 'he doesn't', 'he hasn't'." },
+  { re: /\bI (?:has|does not has|doesn't)\b/i, note: "'I' ile 'have' / 'don't' kullanılır: 'I have', 'I don't'." },
+  // repeated word, except "that that" and "had had", which can be correct
+  { re: /\b(?!that\b|had\b)(\w+)\s+\1\b/i, note: "Aynı kelime arka arkaya iki kez geçmiş olabilir." }
+];
+
+// =====================================================================
+// Evaluation prompt that goes on top of the copied transcript
+// =====================================================================
+const EVAL_PROMPT =
+`I am a Turkish speaker learning English at about A2-B1 level. I am a basketball referee.
+Below is a practice conversation in English. The other person's lines are marked with their role. My lines are marked "Me".
+For each of my lines, please:
+1) point out grammar mistakes and show the corrected sentence,
+2) say whether I answered the question clearly,
+3) suggest a better, natural way to say it at my level,
+4) give a score from 1 to 5 for grammar, clarity and relevance.
+Explain everything in Turkish, with short English examples. At the end, give me 3 useful referee phrases to practise.`;
+
+// =====================================================================
+// State and helpers
+// =====================================================================
+let scenarioKey = null;
+let nodeId = null;
+let log = [];
+let listening = false;
+let sendAfterStop = false;
+
+const $ = id => document.getElementById(id);
+const menu = $("menu"), chat = $("chat"), inputArea = $("inputArea"),
+      answer = $("answer"), micBtn = $("micBtn"), sendBtn = $("sendBtn"),
+      tools = $("tools"), statusEl = $("status");
+
+function setStatus(msg) { statusEl.textContent = msg; }
+function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+// Whole-word, case-insensitive. Apostrophes are normalised so "don't" and "don’t" match.
+function matches(text, keys) {
+  const t = text.replace(/[’‘]/g, "'");
+  return keys.some(k => new RegExp("(^|[^\\w'])" + escapeRegex(k) + "(?=$|[^\\w'])", "i").test(t));
+}
+
+function grammarNotes(text) {
+  const t = text.replace(/[’‘]/g, "'");
+  return GRAMMAR.filter(g => g.re.test(t)).map(g => g.note);
+}
+
+let enVoice = null;
+function pickVoice() {
+  if (!("speechSynthesis" in window)) return;
+  const voices = speechSynthesis.getVoices();
+  enVoice = voices.find(v => /^en[-_]US/i.test(v.lang)) || voices.find(v => /^en/i.test(v.lang)) || null;
+}
+if ("speechSynthesis" in window) {
+  pickVoice();
+  speechSynthesis.onvoiceschanged = pickVoice;
+}
+
+function speak(text) {
+  if (!("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  if (enVoice) u.voice = enVoice;
+  u.rate = 0.9;
+  speechSynthesis.speak(u);
+}
+
+function smallBtn(label, fn) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "small";
+  b.textContent = label;
+  b.onclick = fn;
+  return b;
+}
+
+function scrollToEnd() {
+  const last = chat.lastElementChild;
+  if (last) last.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+function coachBubble(en, tr) {
+  const d = document.createElement("div");
+  d.className = "bubble coach";
+  const who = document.createElement("div");
+  who.className = "who";
+  who.textContent = SCENARIOS[scenarioKey].speaker;
+  const p = document.createElement("p");
+  p.textContent = en;
+  const trP = document.createElement("p");
+  trP.className = "tr";
+  trP.textContent = tr;
+  trP.hidden = true;
+  const row = document.createElement("div");
+  row.className = "btnrow";
+  row.append(
+    smallBtn("🔊 Tekrar dinle", () => speak(en)),
+    smallBtn("Türkçe", () => { trP.hidden = !trP.hidden; })
+  );
+  d.append(who, p, trP, row);
+  chat.appendChild(d);
+  scrollToEnd();
+  speak(en);
+  log.push({ who: SCENARIOS[scenarioKey].speaker, text: en });
+}
+
+function studentBubble(text, notes) {
+  const d = document.createElement("div");
+  d.className = "bubble student";
+  const who = document.createElement("div");
+  who.className = "who";
+  who.textContent = "Sen";
+  const p = document.createElement("p");
+  p.textContent = text;
+  d.append(who, p);
+  if (notes.length) {
+    const ul = document.createElement("ul");
+    ul.className = "notes";
+    notes.forEach(n => {
+      const li = document.createElement("li");
+      li.textContent = "✏️ " + n;
+      ul.appendChild(li);
+    });
+    d.appendChild(ul);
+  }
+  const row = document.createElement("div");
+  row.className = "btnrow";
+  const a = document.createElement("a");
+  a.className = "link";
+  a.href = "https://translate.google.com/?sl=en&tl=tr&op=translate&text=" + encodeURIComponent(text);
+  a.target = "_blank";
+  a.rel = "noopener";
+  a.textContent = "Türkçe'ye çevir";
+  row.appendChild(a);
+  d.appendChild(row);
+  chat.appendChild(d);
+  scrollToEnd();
+  log.push({ who: "Me", text, notes });
+}
+
+function showNode(id) {
+  nodeId = id;
+  const node = SCENARIOS[scenarioKey].nodes[id];
+  coachBubble(node.en, node.tr);
+  if (node.end) {
+    inputArea.hidden = true;
+    const e = document.createElement("div");
+    e.className = "endnote";
+    e.textContent = "Konuşma bitti. “Konuşmayı kopyala” ile AI uygulamana yapıştır, sonra “Yeni konuşma” ile devam et.";
+    chat.appendChild(e);
+    scrollToEnd();
+    setStatus("Konuşma bitti.");
+  } else {
+    setStatus("Cevabını konuş ya da yaz, sonra Gönder'e bas.");
+  }
+}
+
+function startScenario(key) {
+  stopListening(false);
+  scenarioKey = key;
+  log = [];
+  chat.innerHTML = "";
+  menu.hidden = true;
+  inputArea.hidden = false;
+  tools.hidden = false;
+  answer.value = "";
+  showNode(SCENARIOS[key].start);
+}
+
+function startRandom() {
+  const keys = Object.keys(SCENARIOS).filter(k => k !== scenarioKey);
+  const pool = keys.length ? keys : Object.keys(SCENARIOS);
+  startScenario(pool[Math.floor(Math.random() * pool.length)]);
+}
+
+function showMenu() {
+  stopListening(false);
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  scenarioKey = null;
+  nodeId = null;
+  log = [];
+  chat.innerHTML = "";
+  menu.innerHTML = "";
+  menu.hidden = false;
+  inputArea.hidden = true;
+  tools.hidden = true;
+  setStatus("Bir senaryo seç. / Choose a scenario.");
+
+  const r = document.createElement("button");
+  r.type = "button";
+  r.className = "scenario random";
+  r.textContent = "🎲 Rastgele senaryo";
+  r.onclick = startRandom;
+  menu.appendChild(r);
+
+  Object.keys(SCENARIOS).forEach(key => {
+    const s = SCENARIOS[key];
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "scenario";
+    b.textContent = s.title;
+    const small = document.createElement("small");
+    small.textContent = s.subtitle;
+    b.appendChild(small);
+    b.onclick = () => startScenario(key);
+    menu.appendChild(b);
+  });
+}
+
+function send() {
+  // If the mic is still on, stop it first and send when the final words arrive.
+  if (listening) {
+    sendAfterStop = true;
+    recog.stop();
+    return;
+  }
+  const text = answer.value.trim();
+  if (!text || !scenarioKey) return;
+  const node = SCENARIOS[scenarioKey].nodes[nodeId];
+  if (node.end) return;
+
+  studentBubble(text, grammarNotes(text));
+  answer.value = "";
+
+  const branch = (node.next || []).find(b => matches(text, b.keys));
+  if (branch) {
+    showNode(branch.to);
+  } else {
+    coachBubble(node.retry.en, node.retry.tr);
+    setStatus("Tekrar dene. Türkçe ipucu için “Türkçe”ye bas.");
+  }
+}
+
+// =====================================================================
+// Speech recognition: live transcript into the answer box
+// =====================================================================
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recog = null;
+
+function setMicUi(on) {
+  listening = on;
+  micBtn.textContent = on ? "⏹ Durdur" : "🎤 Konuş";
+  micBtn.classList.toggle("recording", on);
+  answer.classList.toggle("live", on);
+}
+
+function stopListening(sendAfter) {
+  sendAfterStop = sendAfter;
+  if (recog && listening) recog.stop();
+}
+
+if (SR) {
+  recog = new SR();
+  recog.lang = "en-US";
+  recog.interimResults = true;
+  recog.continuous = false;
+  recog.maxAlternatives = 1;
+
+  recog.onresult = e => {
+    let text = "";
+    for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
+    answer.value = text.trim();
+  };
+  recog.onend = () => {
+    setMicUi(false);
+    if (sendAfterStop) {
+      sendAfterStop = false;
+      send();
+    }
+  };
+  recog.onerror = e => {
+    setMicUi(false);
+    sendAfterStop = false;
+    const msg = {
+      "not-allowed": "Mikrofon izni verilmedi. Tarayıcı ayarlarından izin ver ya da yazarak devam et.",
+      "no-speech": "Ses duyulmadı. Tekrar dene ya da yaz.",
+      "network": "Ses tanıma için internet gerekiyor. Yazarak devam edebilirsin.",
+      "audio-capture": "Mikrofon bulunamadı. Yazarak devam edebilirsin."
+    }[e.error] || "Ses tanıma çalışmadı. Yazarak devam edebilirsin.";
+    setStatus(msg);
+  };
+} else {
+  micBtn.disabled = true;
+}
+
+micBtn.onclick = () => {
+  if (!recog) return;
+  if (listening) { stopListening(false); return; }
+  if ("speechSynthesis" in window) speechSynthesis.cancel(); // don't let the mic hear the coach
+  answer.value = "";
+  try {
+    recog.start();
+    setMicUi(true);
+    setStatus("Dinliyorum... İngilizce konuş.");
+  } catch (err) {
+    setStatus("Mikrofon başlatılamadı. Yazarak devam edebilirsin.");
+  }
+};
+
+sendBtn.onclick = send;
+answer.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+});
+
+// =====================================================================
+// Copy transcript (with evaluation prompt) for the learner's own AI app
+// =====================================================================
+function transcriptText() {
+  const lines = log.map(l => {
+    const extra = l.notes && l.notes.length ? "   [app notes: " + l.notes.join(" | ") + "]" : "";
+    return l.who + ": " + l.text + extra;
+  });
+  return EVAL_PROMPT + "\n\n--- Scenario: " + SCENARIOS[scenarioKey].title + " ---\n\n" + lines.join("\n");
+}
+
+async function copyTranscript() {
+  if (!scenarioKey || !log.length) return;
+  const t = transcriptText();
+  let ok = false;
+  try {
+    await navigator.clipboard.writeText(t);
+    ok = true;
+  } catch (err) {
+    const ta = document.createElement("textarea");
+    ta.value = t;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { ok = document.execCommand("copy"); } catch (e2) { ok = false; }
+    ta.remove();
+  }
+  setStatus(ok ? "Kopyalandı. AI uygulamana yapıştırabilirsin." : "Kopyalanamadı. Konuşmayı elle seçip kopyala.");
+}
+
+$("nojs").hidden = true; // the script is running, so hide the "open in a browser" warning
+$("copyBtn").onclick = copyTranscript;
+$("newBtn").onclick = showMenu;
+
+if (!SR) {
+  showMenu();
+  setStatus("Bu tarayıcıda ses tanıma yok. Chrome kullan ya da yazarak devam et.");
+} else {
+  showMenu();
+}
+</script>
+</body>
+</html>
